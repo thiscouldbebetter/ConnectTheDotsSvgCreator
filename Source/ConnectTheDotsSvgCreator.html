@@ -1,0 +1,251 @@
+<html>
+<body>
+
+<div id="divUi">
+	<h3>Connect-the-Dots SVG Creator</h3>
+
+	<p>
+		In the box below, specify the spacing between grid lines as pixels,
+		followed by a map of vertex labels spaced by periods,
+		and finally a list of links between vertices
+		as vertex labels delimited by colons.
+		All of these sections should be delmited by blank lines.
+		Finally, click the Convert button to convert it to SVG (XML) format,
+		and to render the resulting SVG onto the screen.
+	</p>
+
+	<div>
+		<label>Vector Image in Connect-the-Dots Format:</label>
+		<button onclick="buttonDemoLoad_Clicked()">Load Demo</button>
+		<br />
+		<textarea
+			id="textareaImageInConnectTheDotsFormat"
+			cols="80" rows="20"
+		></textarea>
+	</div>
+	<div>
+		<button onclick="buttonConvert_Clicked()">
+			Convert Connect-the-Dots Format to SVG
+		</button>
+	</div>
+	<div>
+		<label>Vector Image in SVG Format:</label>
+		<br />
+		<textarea
+			id="textareaImageInSvgFormat"
+			cols="80" rows="20"
+		></textarea>
+	</div>
+	<div>
+		<label>Image Rendered:</label>
+		<div id="divImageRendered">
+			Click the convert button to render an image.
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+
+function buttonDemoLoad_Clicked()
+{
+	var d = document;
+	var textareaImageInConnectTheDotsFormat =
+		d.getElementById("textareaImageInConnectTheDotsFormat");
+	var imageInConnectTheDotsFormatAsLines =
+	[
+		"10,10",
+		"",
+		"................",
+		".......a........",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+		".d............b.",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+		".......c........",
+		"................",
+		"",
+		"a:b:c:d:a"
+	];
+
+	var newline = "\n";
+	var imageInConnectTheDotsFormat =
+		imageInConnectTheDotsFormatAsLines.join(newline);
+
+	textareaImageInConnectTheDotsFormat.value =
+		imageInConnectTheDotsFormat;
+}
+
+function buttonConvert_Clicked()
+{
+	var d = document;
+	var textareaImageInConnectTheDotsFormat =
+		d.getElementById("textareaImageInConnectTheDotsFormat");
+	var imageInConnectTheDotsFormat =
+		textareaImageInConnectTheDotsFormat.value;
+
+	var blankLine = "\n\n";
+	var imageSections = imageInConnectTheDotsFormat.split(blankLine);
+
+	if (imageSections.length < 3)
+	{
+		alert("Unexpected format!");
+		return;
+	}
+
+	var cellSizeInPixelsAsText = imageSections[0];
+	var cellSizeInPixelsXYAsText = cellSizeInPixelsAsText.split(",");
+	if (cellSizeInPixelsXYAsText.length != 2)
+	{
+		alert("Unexpected format!");
+		return;
+	}
+
+	var cellSizeInPixelsXY =
+		cellSizeInPixelsXYAsText.map(x => parseFloat(x) );
+	var cellSizeInPixels = new Coords
+	(
+		cellSizeInPixelsXY[0],
+		cellSizeInPixelsXY[1]
+	);
+
+	var vertexMapAsText = imageSections[1];
+	var newline = "\n";
+	var vertexMapLines = vertexMapAsText.split(newline);
+	var vertexMapSizeInCells = new Coords
+	(
+		vertexMapLines[0].length,
+		vertexMapLines.length
+	);
+
+	var cellPosInCells = new Coords();
+	for (var y = 0; i < vertexMapSizeInCells.y; y++)
+	{
+		cellPosInCells.y = y;
+
+		var line = vertexMapLines[i];
+		var lineAsChars = line.split("");
+
+		for (var x = 0; x < vertexMapSizeInCells.x; x++)
+		{
+			cellPosInCells.x = x;
+
+			var charAtCellPos = lineAsChars[x];
+			if (charAtCellPos != ".")
+			{
+				var vertexLabel = charAtCellPos;
+				var vertex = new Vertex
+				(
+					vertexLabel, vertexPosInCells
+				);
+				vertices.push(vertex);
+			} 
+		}
+	}
+
+	var vertexConnectionsAsText = imageSections[2];
+	var vertexConnectionsAsLines =
+		vertexConnectionsAsText.split(newline);
+
+	var paths = [];
+
+	for (var i = 0; i < vertexConnectionsAsLines.length; i++)
+	{
+		var vertexConnectionAsLine = vertexConnectionsAsLines[i];
+		var vertexLabelsToConnect =
+			vertexConnectionAsLine.split(":");
+
+		var edges = [];
+
+		for (var v = 0; v < vertexLabelsToConnect.length - 1; v++)
+		{
+			var vertexLabel = vertexLabelsToConnect[v];
+			var vertexLabelNext = vertexLabelsToConnect[v + 1];
+
+			var edge = new Edge(vertexLabel, vertexLabelNext);
+			edges.push(edge);
+		}
+
+		var path = new Path(edges);
+
+		paths.push(path);
+	}
+
+	var vectorImage = new VectorImage(paths);
+
+	var imageInSvgFormat = vectorImage.toStringSvg();
+
+	var textareaImageInSvgFormat =
+		d.getElementById("textareaImageInSvgFormat");
+	textareaImageInSvgFormat.value = imageInSvgFormat;
+}
+
+// Classes.
+
+class Coords
+{
+	constructor(x, y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+
+	multiply(other)
+	{
+		this.x *= other.x;
+		this.y *= other.y;
+		return this;
+	}
+}
+
+class Edge
+{
+	constructor(vertexLabelFrom, vertexLabelTo)
+	{
+		this.vertexLabelFrom = vertexLabelFrom;
+		this.vertexLabelTo = vertexLabelTo;
+	}
+}
+
+class Path
+{
+	constructor(vertices, edges)
+	{
+		this.vertices = vertices;
+		this.edges = edges;
+	}
+}
+
+class VectorImage
+{
+	constructor(paths)
+	{
+		this.paths = paths;
+	}
+
+	toStringSvg()
+	{
+		var returnValue = "todo";
+		return returnValue;
+	}
+}
+
+class Vertex
+{
+	constructor(label, posInCells)
+	{
+		this.label = label;
+		this.posInCells = posInCells;
+	}
+}
+
+</script>
+</body>
+</html>
